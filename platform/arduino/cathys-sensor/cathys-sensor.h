@@ -35,6 +35,10 @@ int16_t const POLL_FREQ_MS = 10; // frequency in which we poll all sensors (mill
 int16_t const IR_POLL_FREQ_MS     =   10;
 int16_t const IR_SAMPLE_WINDOW_MS = 5000; // (5-second sampling)
 #define HAS_SAMPLE_WINDOW_EXPIRED(since) (millis() - (since) >= IR_SAMPLE_WINDOW_MS)
+float   const IR_SIGNAL_MINIMUM   = 100.0 / NUM_IR_DIODE; // signal validity threshold in [0%, 100%]
+
+float   const IR_AVERAGE_INVALID     = -1.0;
+#define IR_AVERAGE_VALID(v) (fabs((v) - IR_AVERAGE_INVALID) >= 0.001)
 
 uint8_t const IR_DIODE_PIN_INVALID   = UCHAR_MAX;
 int16_t const IR_DIODE_VALUE_INVALID = SHRT_MAX; // greater than analogRead() maximum (1023)
@@ -61,20 +65,16 @@ public:
   inline bool operator <(const Infrared_Diode &diode) const {
     return _value < diode._value;
   }
-  inline uint8_t led()   const { return IR_DIODE_LED(_pin); }
-  inline uint8_t pin()   const { return _pin; }
-  inline int16_t value() const { return _value; }
-  inline int16_t time()  const { return _time; }
-  inline float grade()   const {
+  static inline float grade(int16_t value) {
     // returns a value from 0.0 to 100.0, dimmest to brightest, respectively,
     // using the following formula: 100 * ( 1 - v / vMax )
     // NOTE:
     //   the naive solution (above) potentially produces significant floating
-    //   point round-off error when the difference is close to 0, and then
-    //   further propogates the error up through the multiplication.
-    int16_t r = IR_DIODE_VALUE_MAXIMUM - _value;
+    //   point round-off error when the difference is close to 0, so perform
+    //   the subtraction via integers first before factoring.
+    int16_t r = IR_DIODE_VALUE_MAXIMUM - value;
     if (r < 0) { r = 0; }
-    return 100.0 * (float)r / IR_DIODE_VALUE_MAXIMUM;
+    return (float)r * 100.0 / IR_DIODE_VALUE_MAXIMUM;
   }
   void update() {
     if (IR_DIODE_PIN_INVALID != _pin) {
@@ -88,6 +88,12 @@ public:
       (_value != IR_DIODE_VALUE_INVALID) &&
       (_time != IR_DIODE_TIME_VALID);
   }
+  inline uint8_t led()   const { return IR_DIODE_LED(_pin); }
+  inline uint8_t pin()   const { return _pin; }
+  inline int16_t value() const { return _value; }
+  inline int16_t time()  const { return _time; }
+  inline float   grade() const { return Infrared_Diode::grade(_value); }
+
 private:
   uint8_t _pin;
   int16_t _value;
@@ -111,8 +117,8 @@ public:
           Infrared_Diode(diodePin5),
           Infrared_Diode(diodePin6)
         }),
-        _averageLED(-1.0),
-        _averageValue(-1.0),
+        _averageLED(IR_AVERAGE_INVALID),
+        _averageValue(IR_AVERAGE_INVALID),
         _accumulateIR(true),
         _diodeList({})
     { /* constructor empty */ }
@@ -120,14 +126,14 @@ public:
     //Serial.begin(9600);
   }
   void loop() {
-    static int            lastTime   = millis();
-    static int            startTime  = millis();
-    static uint32_t       numSamples = 0; // determined during accumulation
-    static uint32_t       sumLED     = 0;
-    static uint32_t       sumValue   = 0;
-    static Infrared_Diode brightest  = Infrared_Diode();
+    static int      lastTime   = millis();
+    static int      startTime  = millis();
+    static uint32_t numSamples = 0; // unchanging post-accumulation
+    static int32_t  sumLED     = 0;
+    static int32_t  sumValue   = 0;
 
     if (HAS_POLL_ELAPSED(lastTime)) {
+      Infrared_Diode brightest  = Infrared_Diode();
       // poll each infrared diode effectively as an atomic operation.
       for (int i = 0; i < NUM_IR_DIODE; ++i) {
         _diode[i].update();
@@ -136,7 +142,7 @@ public:
        // append the latest "best" signal to our list of samples
       _diodeList.push_front(brightest);
 
-      if (accumulateIR) {
+      if (_accumulateIR) {
         // accumulate infrared samples for calculating an average IR direction;
         // the direction will not yet be available until a sufficient amount of
         // time has elapsed (per IR_SAMPLE_WINDOW_MS).
@@ -146,7 +152,7 @@ public:
         if (HAS_SAMPLE_WINDOW_EXPIRED(startTime)) {
           // pool is ready, bail out of the accumulation phase. all subsequent
           // iterations will be adjustments to this calculated average.
-          accumulateIR = false;
+          _accumulateIR = false;
           _averageLED   = (float)sumLED   / numSamples;
           _averageValue = (float)sumValue / numSamples;
         }
@@ -154,7 +160,7 @@ public:
       else {
         // adjust the calculated average by removing the oldest sample and
         // including the most recent.
-        sumLED   = brightest.pin()   - _diodeList.back().led();
+        sumLED   = brightest.led()   - _diodeList.back().led();
         sumValue = brightest.value() - _diodeList.back().value();
         _averageLED   += (float)sumLED   / numSamples;
         _averageValue += (float)sumValue / numSamples;
@@ -164,20 +170,42 @@ public:
       lastTime = millis();
     }
   }
-  inline int16_t infraredGrade(size_t i) const {
-    return i >= 0 && i < NUM_IR_DIODE
-      ? _diode[i].grade()
-      : IR_DIODE_VALUE_INVALID;
-
-    inline bool tryAverageAngle() {
-      if
-    }
+  inline float intensity(size_t i) const {
+    return _diode[i].grade();
+  }
+  inline float intensity() const {
+    return Infrared_Diode::grade(_averageValue);
+  }
+  inline uint8_t angle() const { // output byte value between [0°, 180°]
+#define ANGLE_MIN_DEG   0 // note these must be representable by return type, so
+#define ANGLE_MAX_DEG 180 //..e.g. [-90°, 90°], type should change to int8_t.
+    uint8_t angle = ANGLE_MIN_DEG +
+      (ANGLE_MAX_DEG - ANGLE_MIN_DEG) * _averageLED / (NUM_IR_DIODE - 1);
+    if (angle < ANGLE_MIN_DEG) { angle = ANGLE_MIN_DEG; }
+    if (angle > ANGLE_MAX_DEG) { angle = ANGLE_MAX_DEG; }
+    return angle;
+  }
+  inline bool ready() const {
+    return !_accumulateIR;
+  }
+  inline bool active(size_t i, float const minIntensity = IR_SIGNAL_MINIMUM) const {
+    return intensity(i) >= minIntensity;
+  }
+  inline bool valid(size_t i) const {
+    return _diode[i].valid();
+  }
+  inline bool haveSignal(float const minIntensity = IR_SIGNAL_MINIMUM) const {
+    Serial.println((int)ready(), DEC);
+    return
+      ready()                         &&
+      IR_AVERAGE_VALID(_averageValue) &&
+      intensity() >= minIntensity     ;
   }
 
 private:
   Infrared_Diode _diode[NUM_IR_DIODE];
-  float _averageLED, _averageValue;
-  bool _accumulateIR;
+  float          _averageLED, _averageValue;
+  bool           _accumulateIR;
   std::list<Infrared_Diode> _diodeList;
 };
 

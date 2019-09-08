@@ -35,6 +35,10 @@
 #define PI 3.1415926535897932384626433832795
 #endif
 
+#if !defined(DEG2RAD)
+#define DEG2RAD(deg) ((int)(deg) * 1000 / 57296)
+#endif
+
 // configuration for the on-screen graphics
 #define GFX_MIDPT_X            (SCREEN_WIDTH / 2)
 #define GFX_LED_DIODE_RADIUS   24 // pixels
@@ -42,21 +46,46 @@
 #define GFX_SENSOR_ORIGIN_Y    (SCREEN_HEIGHT - GFX_LED_DIODE_DIAMETER)
 #define GFX_SENSOR_RADIUS      (GFX_MIDPT_X - GFX_LED_DIODE_DIAMETER)
 #define GFX_SENSOR_SUM_RADIUS  (GFX_SENSOR_RADIUS + GFX_LED_DIODE_RADIUS)
+#define GFX_INTENSITY_RADIUS   36 // pixels
+#define GFX_INTENSITY_BORDER    4 // pixels
 
-#define GFX_BACKGROUND_COLOR   ILI9341_BLACK
-#define GFX_SENSOR_COLOR       ILI9341_NAVY
-#define GFX_LED_DIODE_COLOR    ILI9341_CYAN
+#define GFX_BACKGROUND_COLOR    ILI9341_BLACK
+
+#define GFX_SENSOR_BG_COLOR     ILI9341_DARKGREY
+#define GFX_SENSOR_FG_COLOR     ILI9341_BLACK
+#define GFX_SENSOR_ACT_BG_COLOR ILI9341_GREEN
+#define GFX_SENSOR_ACT_FG_COLOR ILI9341_BLACK
+#define GFX_SENSOR_SIG_BG_COLOR ILI9341_RED
+#define GFX_SENSOR_SIG_FG_COLOR ILI9341_BLACK
+
+#define GFX_LED_DIODE_RDY_BG_COLOR  ILI9341_DARKGREY
+#define GFX_LED_DIODE_RDY_FG_COLOR  ILI9341_LIGHTGREY
+#define GFX_LED_DIODE_ACT_BG_COLOR  ILI9341_BLUE
+#define GFX_LED_DIODE_ACT_FG_COLOR  ILI9341_WHITE
 
 class Point2D {
 public:
-  Point2D(int16_t x, int16_t y): x(x), y(y) {}
+  Point2D(): _initialized(false), x(0), y(0)
+    { /* constructor empty */ }
+  Point2D(int16_t x, int16_t y): _initialized(true), x(x), y(y)
+    { /* constructor empty */ }
+  Point2D(const Point2D &point)
+    : _initialized(point._initialized),
+      x(point.x),
+      y(point.y)
+    { /* constructor empty */ }
   inline bool operator ==(const Point2D &point) const {
     return (point.x == x) && (point.y == y);
   }
   inline bool operator !=(const Point2D &point) const {
     return (point.x != x) || (point.y != y);
   }
+  inline bool valid() const {
+    return _initialized;
+  }
   int16_t x, y;
+private:
+  bool _initialized;
 };
 
 #define NUM_IR_DIODE 6
@@ -170,29 +199,84 @@ private:
   XPT2046_Touchscreen _touch;
 
   void drawSensor() {
-
-    static bool drawSensor = true;
+    // static autos' values persist across method calls
+    static int const GFX_STR_BUFSZ = 8;
+    static Point2D followPoint;
+    static bool    drawSensor = true;
+    static char    strbuf[GFX_STR_BUFSZ] = {0};
+    // local autos on the stack
+    float angle, intensity;
 
     if (drawSensor) {
-      // the static graphical layout
-      _tft.fillCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_SENSOR_RADIUS, GFX_SENSOR_COLOR);
+      // the static graphical layout -- draw once, then leave in-place
+      _tft.fillCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_SENSOR_RADIUS, GFX_SENSOR_BG_COLOR);
       drawSensor = false;
     }
 
-    _tft.setTextSize(2);
-    _tft.setTextColor(ILI9341_MAROON);
-    // write to screen the analog values being read from the IR sensor
-    for (int i = 0; i < NUM_IR_DIODE; ++i) {
-        int16_t val = _sensor.infraredGrade(i);
-        char buf[8];
-        String(val, DEC).toCharArray(buf, 8);
+    // clear the previous line if it exists
+    // if (followPoint.valid()) {
+    //   _tft.drawLine(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, followPoint.x, followPoint.y, ILI9341_DARKGREY);
+    // }
 
-        _tft.fillCircle(OriginLED[i].x, OriginLED[i].y, GFX_LED_DIODE_RADIUS, GFX_LED_DIODE_COLOR);
-        _tft.setCursor(
-          OriginLED[i].x - _tft.measureTextWidth(buf) / 2,
-          OriginLED[i].y - _tft.measureTextHeight(buf) / 2);
-        _tft.print(val);
+    _tft.setTextSize(2);
+    // write to screen the analog values being read from the IR sensor
+    for (size_t i = 0; i < NUM_IR_DIODE; ++i) {
+      intensity = _sensor.intensity(i);
+      snprintf(strbuf, GFX_STR_BUFSZ, "%d", (int)round(intensity));
+
+      _tft.setCursor(
+        OriginLED[i].x - _tft.measureTextWidth(strbuf)  / 2,
+        OriginLED[i].y - _tft.measureTextHeight(strbuf) / 2
+      );
+
+      if (_sensor.valid(i) && _sensor.active(i)) {
+        _tft.setTextColor(GFX_LED_DIODE_ACT_FG_COLOR);
+        _tft.fillCircle(OriginLED[i].x, OriginLED[i].y, GFX_LED_DIODE_RADIUS, GFX_LED_DIODE_ACT_BG_COLOR);
       }
+      else {
+        _tft.setTextColor(GFX_LED_DIODE_RDY_FG_COLOR);
+        _tft.fillCircle(OriginLED[i].x, OriginLED[i].y, GFX_LED_DIODE_RADIUS, GFX_LED_DIODE_RDY_BG_COLOR);
+      }
+      _tft.print(strbuf);
+    }
+    angle     = _sensor.angle();
+    intensity = _sensor.intensity();
+
+    if (_sensor.ready()) {
+      // followPoint =
+      //   Point2D(
+      //     GFX_MIDPT_X         + cos(DEG2RAD(angle)) * GFX_SENSOR_SUM_RADIUS,
+      //     GFX_SENSOR_ORIGIN_Y - sin(DEG2RAD(angle)) * GFX_SENSOR_SUM_RADIUS
+      //   );
+      // _tft.drawLine(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, followPoint.x, followPoint.y, ILI9341_BLUE);
+
+      snprintf(strbuf, GFX_STR_BUFSZ, "%d", (int)round(intensity));
+      //snprintf(strbuf, GFX_STR_BUFSZ, "%d", (int)round(angle));
+
+      _tft.drawCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS + GFX_INTENSITY_BORDER, GFX_BACKGROUND_COLOR );
+      _tft.drawCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS + GFX_INTENSITY_BORDER-2, GFX_BACKGROUND_COLOR );
+
+      if (_sensor.haveSignal()) {
+        _tft.setTextColor(GFX_SENSOR_ACT_FG_COLOR);
+        _tft.fillCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS, GFX_SENSOR_ACT_BG_COLOR );
+      }
+      else {
+        _tft.setTextColor(GFX_SENSOR_SIG_FG_COLOR);
+        _tft.fillCircle(GFX_MIDPT_X,  GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS, GFX_SENSOR_SIG_BG_COLOR);
+        followPoint = Point2D();
+      }
+    }
+    else {
+      snprintf(strbuf, GFX_STR_BUFSZ, "%s", "--");
+      _tft.setTextColor(GFX_SENSOR_FG_COLOR);
+      _tft.fillCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS + GFX_INTENSITY_BORDER, GFX_SENSOR_BG_COLOR);
+    }
+    _tft.setTextSize(3);
+    _tft.setCursor(
+      GFX_MIDPT_X         - _tft.measureTextWidth(strbuf)  / 2,
+      GFX_SENSOR_ORIGIN_Y - _tft.measureTextHeight(strbuf) / 2
+    );
+    _tft.print(strbuf);
   }
 };
 
