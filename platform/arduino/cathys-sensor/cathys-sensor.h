@@ -176,10 +176,10 @@ public:
   inline float intensity() const {
     return Infrared_Diode::grade(_averageValue);
   }
-  inline uint8_t angle() const { // output byte value between [0°, 180°]
-#define ANGLE_MIN_DEG   0 // note these must be representable by return type, so
-#define ANGLE_MAX_DEG 180 //..e.g. [-90°, 90°], type should change to int8_t.
-    uint8_t angle = ANGLE_MIN_DEG +
+  inline int16_t angle() const { // output byte value between [0°, 180°]
+#define ANGLE_MIN_DEG   0
+#define ANGLE_MAX_DEG 180
+    int16_t angle = ANGLE_MIN_DEG +
       (ANGLE_MAX_DEG - ANGLE_MIN_DEG) * _averageLED / (NUM_IR_DIODE - 1);
     if (angle < ANGLE_MIN_DEG) { angle = ANGLE_MIN_DEG; }
     if (angle > ANGLE_MAX_DEG) { angle = ANGLE_MAX_DEG; }
@@ -195,7 +195,6 @@ public:
     return _diode[i].valid();
   }
   inline bool haveSignal(float const minIntensity = IR_SIGNAL_MINIMUM) const {
-    Serial.println((int)ready(), DEC);
     return
       ready()                         &&
       IR_AVERAGE_VALID(_averageValue) &&

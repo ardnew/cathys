@@ -12,7 +12,7 @@
 #include <ILI9341_t3.h>
 #include <XPT2046_Touchscreen.h>
 
-//  general configuration
+// general configuration
 #define REFRESH_RATE_MS 100 // frequency to perform screen updates (milliseconds)
 #define HAS_RATE_ELAPSED(since) (millis() - (since) >= REFRESH_RATE_MS)
 
@@ -65,14 +65,14 @@
 
 class Point2D {
 public:
-  Point2D(): _initialized(false), x(0), y(0)
+  Point2D(): x(0), y(0), _initialized(false)
     { /* constructor empty */ }
-  Point2D(int16_t x, int16_t y): _initialized(true), x(x), y(y)
+  Point2D(int16_t x, int16_t y): x(x), y(y), _initialized(true)
     { /* constructor empty */ }
   Point2D(const Point2D &point)
-    : _initialized(point._initialized),
-      x(point.x),
-      y(point.y)
+    : x(point.x),
+      y(point.y),
+      _initialized(point._initialized)
     { /* constructor empty */ }
   inline bool operator ==(const Point2D &point) const {
     return (point.x == x) && (point.y == y);
@@ -201,9 +201,8 @@ private:
   void drawSensor() {
     // static autos' values persist across method calls
     static int const GFX_STR_BUFSZ = 8;
-    static Point2D followPoint;
-    static bool    drawSensor = true;
-    static char    strbuf[GFX_STR_BUFSZ] = {0};
+    static bool      drawSensor = true;
+    static char      strbuf[GFX_STR_BUFSZ] = {0};
     // local autos on the stack
     float angle, intensity;
 
@@ -213,13 +212,8 @@ private:
       drawSensor = false;
     }
 
-    // clear the previous line if it exists
-    // if (followPoint.valid()) {
-    //   _tft.drawLine(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, followPoint.x, followPoint.y, ILI9341_DARKGREY);
-    // }
-
     _tft.setTextSize(2);
-    // write to screen the analog values being read from the IR sensor
+    // write to screen the analog values being read from each IR sensor
     for (size_t i = 0; i < NUM_IR_DIODE; ++i) {
       intensity = _sensor.intensity(i);
       snprintf(strbuf, GFX_STR_BUFSZ, "%d", (int)round(intensity));
@@ -239,16 +233,10 @@ private:
       }
       _tft.print(strbuf);
     }
-    angle     = _sensor.angle();
+    (void)(angle = _sensor.angle());
     intensity = _sensor.intensity();
 
     if (_sensor.ready()) {
-      // followPoint =
-      //   Point2D(
-      //     GFX_MIDPT_X         + cos(DEG2RAD(angle)) * GFX_SENSOR_SUM_RADIUS,
-      //     GFX_SENSOR_ORIGIN_Y - sin(DEG2RAD(angle)) * GFX_SENSOR_SUM_RADIUS
-      //   );
-      // _tft.drawLine(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, followPoint.x, followPoint.y, ILI9341_BLUE);
 
       snprintf(strbuf, GFX_STR_BUFSZ, "%d", (int)round(intensity));
       //snprintf(strbuf, GFX_STR_BUFSZ, "%d", (int)round(angle));
@@ -258,12 +246,11 @@ private:
 
       if (_sensor.haveSignal()) {
         _tft.setTextColor(GFX_SENSOR_ACT_FG_COLOR);
-        _tft.fillCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS, GFX_SENSOR_ACT_BG_COLOR );
+        _tft.fillCircle(GFX_MIDPT_X, GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS, GFX_SENSOR_ACT_BG_COLOR);
       }
       else {
         _tft.setTextColor(GFX_SENSOR_SIG_FG_COLOR);
         _tft.fillCircle(GFX_MIDPT_X,  GFX_SENSOR_ORIGIN_Y, GFX_INTENSITY_RADIUS, GFX_SENSOR_SIG_BG_COLOR);
-        followPoint = Point2D();
       }
     }
     else {
