@@ -43,11 +43,11 @@ There are two primary components currently implementing this system. They are
 separated in this repository by their actual physical platform:
 
 
-1. [platform][platform]/[arduino][platformarduino] — Arduino (C++) project sketches
+- [platform][platform]/[arduino][platformarduino] — Arduino (C++) project sketches
 	- [cathys-sensor][cathyssensor] Source code for reading, sampling, filtering, and processing data from the on-board sensor suite
 		- Includes the IR signal strength and direction analysis, as well as the ultrasonic rangefinder, for the IR following capability
 		- Also implements a touchscreen user interface for displaying sensor suite data and accepting input and general-purpose robot control from the user
-2. [platform][platform]/[create][platformcreate] — Projects interacting directly with [iRobot® Create® 2][create] via on-board Mini-DIN serial connector
+- [platform][platform]/[create][platformcreate] — Projects interacting directly with [iRobot® Create® 2][create] via on-board Mini-DIN serial connector
 	- [cathys-drive][cathysdrive] — Source code for interacting with the [OI-compatible][oispec] robot via [oibot][oibot] driver library, providing an interface to peripheral devices
 		- Handles translating the communication via serial UART between the [sensor suite and touch screen][cathyssensor] and the actual [robot][oibot]
 
