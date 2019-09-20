@@ -44,7 +44,7 @@ separated in this repository by their actual physical platform:
 
 
 - [platform][platform]/[arduino][platformarduino] — Arduino (C++) project sketches
-	- [cathys-sensor][cathyssensor] Source code for reading, sampling, filtering, and processing data from the on-board sensor suite
+	- [cathys-sensor][cathyssensor] — Source code for reading, sampling, filtering, and processing data from the on-board sensor suite
 		- Includes the IR signal strength and direction analysis, as well as the ultrasonic rangefinder, for the IR following capability
 		- Also implements a touchscreen user interface for displaying sensor suite data and accepting input and general-purpose robot control from the user
 - [platform][platform]/[create][platformcreate] — Projects interacting directly with [iRobot® Create® 2][create] via on-board Mini-DIN serial connector
