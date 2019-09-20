@@ -50,7 +50,7 @@ separated in this repository by their actual physical platform:
 - [platform][platform]/[create][platformcreate] — Projects interacting directly with [iRobot® Create® 2][create] via on-board Mini-DIN serial connector
 	- [cathys-drive][cathysdrive] — Source code for interacting with the [OI-compatible][oispec] robot via [oibot][oibot] driver library on the ASRock host PC, providing an interface to peripheral devices
 		- Handles translating the communication via serial UART between the [sensor suite and touch screen][cathyssensor] and the actual [robot][oibot]
-		- Runs on an Intel x86/64 PC (ASRock on cathys), with the [iRobot® Create® 2][create] connected through a host USB port via iRobot® USB-to-serial converter — peripheral devices such as [cathys-sensor][cathyssensor] are also connected through another host USB port on the PC — this project coordinates and abstracts the communication between these two UARTs
+		- Runs on an Intel x86/64 PC (ASRock host on cathys), with the [iRobot® Create® 2][create] connected through a host USB port via iRobot® USB-to-serial converter — peripheral devices such as [cathys-sensor][cathyssensor] are also connected through another host USB port on the PC — this project coordinates and abstracts the communication among these serial UARTs
 
 TODO
 ==
