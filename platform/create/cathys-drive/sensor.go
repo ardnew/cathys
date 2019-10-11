@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
-	"github.com/ardnew/oibot"
 	"github.com/tarm/serial"
 )
 
 const (
 	defaultBaudRateBPS int = 115200
+)
+
+const (
+	ucmdMode int16 = iota - 1
 )
 
 type Sensor struct {
@@ -46,43 +48,48 @@ func (s *Sensor) Read(buf []byte) int {
 	} else {
 		count = n
 	}
-	time.Sleep(oibot.SerialTransferDelayMS)
 	return count
 }
 
-func (s *Sensor) Data() *SensorData {
+func (s *Sensor) Data() (*SensorData, bool) {
 	// for help with the magic numbers used here, see the JSON output definition
 	// in cathys-sensor.ino as well as the calculator tool (for the serialization
 	// lib used in that project) here:
 	//   https://arduinojson.org/v6/assistant/
 	const (
-		jsonDataDelimiter = "\n"
-		jsonObjSize       = 16
-		jsonObjCount      = 3
-		jsonStringsSize   = 35                 // the sum of all key identifiers
-		jsonMarkupSize    = 2 + 4*jsonObjCount // outer brackets and key delimiters
-		jsonDataSize      = jsonObjSize*jsonObjCount + jsonStringsSize + jsonMarkupSize + 1
+		jsonObjSize     = 16
+		jsonObjCount    = 3
+		jsonStringsSize = 35                 // the sum of all key identifiers
+		jsonMarkupSize  = 2 + 4*jsonObjCount // outer brackets and key delimiters
+		jsonDataSize    = jsonObjSize*jsonObjCount + jsonStringsSize + jsonMarkupSize + 1
 
 		// the buffer is twice as big as one JSON struct so that we can guarantee
 		// to have a newline delimiter somewhere in the stream, since our reads do
 		// not necessarily begin or end with any relation to the JSON delimiters.
-		jsonBufSize = 2 * jsonDataSize
+		jsonBufSize = 1.5*jsonDataSize + 1
 	)
 	var (
 		data = SensorData{}
 	)
 	buf := make([]byte, jsonBufSize)
 	if s.Read(buf) > 0 {
-
-		for _, str := range strings.Split(string(buf), jsonDataDelimiter) {
-			if len(str) > 0 && str[0] == byte('{') && str[len(str)-1] == byte('}') {
+		for _, str := range strings.Fields(string(buf)) {
+			// do a preliminary sanity check before trying to unmarshal. this really
+			// only helps reduce the number of errors logged to output.
+			if strings.HasPrefix(str, "{") && strings.HasSuffix(str, "}") {
 				if err := json.Unmarshal([]byte(str), &data); nil != err {
-					s.errorLog.Panic(fmt.Errorf("failed to unmarshal JSON data: %v", str))
+					s.errorLog.Printf("failed to unmarshal JSON data: %+v", str)
 				} else {
-					s.infoLog.Printf("%v (%T)", data, data)
+					return &data, true
 				}
 			}
 		}
 	}
-	return &data
+	return nil, false
+}
+
+func (s *Sensor) Write(buf []byte) {
+	if n, err := s.port.Write(buf); n <= 0 || nil != err {
+		s.errorLog.Printf("failed to write to serial port: %+v: %s", buf, err)
+	}
 }

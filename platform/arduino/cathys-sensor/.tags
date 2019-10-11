@@ -8,32 +8,44 @@ ANALOG_READ_MAX	cathys-sensor.h	28;"	d
 ANALOG_READ_MIN	cathys-sensor.h	27;"	d
 ANGLE_MAX_DEG	cathys-sensor.h	181;"	d
 ANGLE_MIN_DEG	cathys-sensor.h	180;"	d
+Button_Callback	sensor-display.h	/^typedef void (Sensor_Display::*Button_Callback)();$/;"	t
+CALL_MEMBER_FN	sensor-display.h	208;"	d
 Cathys_Sensor	cathys-sensor.h	/^  Cathys_Sensor($/;"	f	class:Cathys_Sensor
 Cathys_Sensor	cathys-sensor.h	/^class Cathys_Sensor {$/;"	c
-DEFAULT_ORIENTATION	sensor-display.h	127;"	d
-DEG2RAD	sensor-display.h	39;"	d
+DEFAULT_ORIENTATION	sensor-display.h	100;"	d
+DEG2RAD	sensor-display.h	48;"	d
 Display_Orientation	sensor-display.h	/^} Display_Orientation;$/;"	t	typeref:enum:__anon1
-GFX_BACKGROUND_COLOR	sensor-display.h	52;"	d
-GFX_INTENSITY_BORDER	sensor-display.h	50;"	d
-GFX_INTENSITY_RADIUS	sensor-display.h	49;"	d
-GFX_LED_DIODE_ACT_BG_COLOR	sensor-display.h	63;"	d
-GFX_LED_DIODE_ACT_FG_COLOR	sensor-display.h	64;"	d
-GFX_LED_DIODE_DIAMETER	sensor-display.h	45;"	d
-GFX_LED_DIODE_RADIUS	sensor-display.h	44;"	d
-GFX_LED_DIODE_RDY_BG_COLOR	sensor-display.h	61;"	d
-GFX_LED_DIODE_RDY_FG_COLOR	sensor-display.h	62;"	d
-GFX_MIDPT_X	sensor-display.h	43;"	d
-GFX_SENSOR_ACT_BG_COLOR	sensor-display.h	56;"	d
-GFX_SENSOR_ACT_FG_COLOR	sensor-display.h	57;"	d
-GFX_SENSOR_BG_COLOR	sensor-display.h	54;"	d
-GFX_SENSOR_FG_COLOR	sensor-display.h	55;"	d
-GFX_SENSOR_ORIGIN_Y	sensor-display.h	46;"	d
-GFX_SENSOR_RADIUS	sensor-display.h	47;"	d
-GFX_SENSOR_SIG_BG_COLOR	sensor-display.h	58;"	d
-GFX_SENSOR_SIG_FG_COLOR	sensor-display.h	59;"	d
-GFX_SENSOR_SUM_RADIUS	sensor-display.h	48;"	d
+GFX_BACKGROUND_COLOR	sensor-display.h	62;"	d
+GFX_BUTTON_DISABLED_BG_COLOR	sensor-display.h	79;"	d
+GFX_BUTTON_DISABLED_FG_COLOR	sensor-display.h	78;"	d
+GFX_BUTTON_ENABLED_BG_COLOR	sensor-display.h	77;"	d
+GFX_BUTTON_ENABLED_FG_COLOR	sensor-display.h	76;"	d
+GFX_BUTTON_TEXT_SIZE	sensor-display.h	88;"	d
+GFX_BUTTON_TOUCHED_BG_COLOR	sensor-display.h	81;"	d
+GFX_BUTTON_TOUCHED_FG_COLOR	sensor-display.h	80;"	d
+GFX_CONFIRM_ENABLED_BG_COLOR	sensor-display.h	84;"	d
+GFX_CONFIRM_ENABLED_FG_COLOR	sensor-display.h	83;"	d
+GFX_CONFIRM_TOUCHED_BG_COLOR	sensor-display.h	86;"	d
+GFX_CONFIRM_TOUCHED_FG_COLOR	sensor-display.h	85;"	d
+GFX_INTENSITY_BORDER	sensor-display.h	60;"	d
+GFX_INTENSITY_RADIUS	sensor-display.h	59;"	d
+GFX_LED_DIODE_ACT_BG_COLOR	sensor-display.h	73;"	d
+GFX_LED_DIODE_ACT_FG_COLOR	sensor-display.h	74;"	d
+GFX_LED_DIODE_DIAMETER	sensor-display.h	54;"	d
+GFX_LED_DIODE_RADIUS	sensor-display.h	53;"	d
+GFX_LED_DIODE_RDY_BG_COLOR	sensor-display.h	71;"	d
+GFX_LED_DIODE_RDY_FG_COLOR	sensor-display.h	72;"	d
+GFX_MIDPT_X	sensor-display.h	52;"	d
+GFX_SENSOR_ACT_BG_COLOR	sensor-display.h	66;"	d
+GFX_SENSOR_ACT_FG_COLOR	sensor-display.h	67;"	d
+GFX_SENSOR_BG_COLOR	sensor-display.h	64;"	d
+GFX_SENSOR_FG_COLOR	sensor-display.h	65;"	d
+GFX_SENSOR_ORIGIN_Y	sensor-display.h	55;"	d
+GFX_SENSOR_RADIUS	sensor-display.h	56;"	d
+GFX_SENSOR_SIG_BG_COLOR	sensor-display.h	68;"	d
+GFX_SENSOR_SIG_FG_COLOR	sensor-display.h	69;"	d
+GFX_SENSOR_SUM_RADIUS	sensor-display.h	57;"	d
 HAS_POLL_ELAPSED	cathys-sensor.h	32;"	d
-HAS_RATE_ELAPSED	sensor-display.h	17;"	d
 HAS_SAMPLE_WINDOW_EXPIRED	cathys-sensor.h	37;"	d
 IR_AVERAGE_INVALID	cathys-sensor.h	/^float   const IR_AVERAGE_INVALID     = -1.0;$/;"	v
 IR_AVERAGE_VALID	cathys-sensor.h	41;"	d
@@ -50,35 +62,51 @@ IR_DIODE_VALUE_INVALID	cathys-sensor.h	/^int16_t const IR_DIODE_VALUE_INVALID = 
 IR_DIODE_VALUE_MAXIMUM	cathys-sensor.h	/^int16_t const IR_DIODE_VALUE_MAXIMUM = ANALOG_READ_MAX;$/;"	v
 IR_DIODE_VALUE_MINIMUM	cathys-sensor.h	/^int16_t const IR_DIODE_VALUE_MINIMUM = ANALOG_READ_MIN;$/;"	v
 IR_POLL_FREQ_MS	cathys-sensor.h	/^int16_t const IR_POLL_FREQ_MS     =   10;$/;"	v
-IR_SAMPLE_WINDOW_MS	cathys-sensor.h	/^int16_t const IR_SAMPLE_WINDOW_MS = 5000; \/\/ (5-second sampling)$/;"	v
+IR_SAMPLE_WINDOW_MS	cathys-sensor.h	/^int16_t const IR_SAMPLE_WINDOW_MS = 2500; \/\/ (2.5-second sampling)$/;"	v
 IR_SIGNAL_MINIMUM	cathys-sensor.h	/^float   const IR_SIGNAL_MINIMUM   = 100.0 \/ NUM_IR_DIODE; \/\/ signal validity threshold in [0%, 100%]$/;"	v
 Infrared_Diode	cathys-sensor.h	/^  Infrared_Diode()$/;"	f	class:Infrared_Diode
 Infrared_Diode	cathys-sensor.h	/^  Infrared_Diode(const Infrared_Diode &diode) \/\/ copy-constructor$/;"	f	class:Infrared_Diode
 Infrared_Diode	cathys-sensor.h	/^  Infrared_Diode(uint8_t pin)$/;"	f	class:Infrared_Diode
 Infrared_Diode	cathys-sensor.h	/^class Infrared_Diode {$/;"	c
+MAP_2D_LANDSCAPE	sensor-display.h	113;"	d
+MAP_2D_PORTRAIT	sensor-display.h	108;"	d
+MILLIS_TIME_ELAPSED	sensor-display.h	16;"	d
 NUM_IR_DIODE	cathys-sensor.h	18;"	d
-NUM_IR_DIODE	sensor-display.h	91;"	d
-OriginLED	sensor-display.h	/^const Point2D OriginLED[NUM_IR_DIODE] = {$/;"	v
-PI	sensor-display.h	35;"	d
+NUM_IR_DIODE	sensor-display.h	178;"	d
+PI	sensor-display.h	44;"	d
 POLL_FREQ_MS	cathys-sensor.h	/^int16_t const POLL_FREQ_MS = 10; \/\/ frequency in which we poll all sensors (milliseconds)$/;"	v
-Point2D	sensor-display.h	/^  Point2D(): _initialized(false), x(0), y(0)$/;"	f	class:Point2D
+Point2D	sensor-display.h	/^  Point2D(): x(0), y(0), _initialized(false)$/;"	f	class:Point2D
 Point2D	sensor-display.h	/^  Point2D(const Point2D &point)$/;"	f	class:Point2D
-Point2D	sensor-display.h	/^  Point2D(int16_t x, int16_t y): _initialized(true), x(x), y(y)$/;"	f	class:Point2D
+Point2D	sensor-display.h	/^  Point2D(const TS_Point &point, Display_Orientation orientation)$/;"	f	class:Point2D
+Point2D	sensor-display.h	/^  Point2D(int16_t x, int16_t y): x(x), y(y), _initialized(true)$/;"	f	class:Point2D
 Point2D	sensor-display.h	/^class Point2D {$/;"	c
-REFRESH_RATE_MS	sensor-display.h	16;"	d
-SCREEN_HEIGHT	sensor-display.h	32;"	d
-SCREEN_WIDTH	sensor-display.h	31;"	d
-SPI_MISO_PIN	sensor-display.h	22;"	d
-SPI_MOSI_PIN	sensor-display.h	21;"	d
-SPI_SCLK_PIN	sensor-display.h	23;"	d
+REFRESH_RATE_ELAPSED	sensor-display.h	20;"	d
+REFRESH_RATE_MS	sensor-display.h	19;"	d
+Round_Button	sensor-display.h	/^  Round_Button(): _text(""), _origin(Point2D()), _width(0), _height(0), _radius(0), _pressure(0), _touchDown(nullptr), _touchUp(nullptr)$/;"	f	class:Round_Button
+Round_Button	sensor-display.h	/^  Round_Button(char const *text, const Point2D &origin, int16_t width, int16_t height, int16_t radius, bool needsConfirm, Button_Callback touchDown = nullptr, Button_Callback touchUp = nullptr)$/;"	f	class:Round_Button
+Round_Button	sensor-display.h	/^  Round_Button(char const *text, int16_t x, int16_t y, int16_t width, int16_t height, int16_t radius, bool needsConfirm, Button_Callback touchDown = nullptr, Button_Callback touchUp = nullptr)$/;"	f	class:Round_Button
+Round_Button	sensor-display.h	/^  Round_Button(const Round_Button &button)$/;"	f	class:Round_Button
+Round_Button	sensor-display.h	/^class Round_Button {$/;"	c
+SCREEN_HEIGHT	sensor-display.h	41;"	d
+SCREEN_WIDTH	sensor-display.h	40;"	d
+SPI_MISO_PIN	sensor-display.h	31;"	d
+SPI_MOSI_PIN	sensor-display.h	30;"	d
+SPI_SCLK_PIN	sensor-display.h	32;"	d
 Sensor_Display	sensor-display.h	/^  Sensor_Display($/;"	f	class:Sensor_Display
 Sensor_Display	sensor-display.h	/^class Sensor_Display {$/;"	c
-TFT_RST_PIN	sensor-display.h	26;"	d
-TFT_SPI_CS_PIN	sensor-display.h	24;"	d
-TFT_SPI_DC_PIN	sensor-display.h	25;"	d
-TOUCH_IRQ_PIN	sensor-display.h	28;"	d
-TOUCH_SPI_CS_PIN	sensor-display.h	27;"	d
-UNUSED_PIN	sensor-display.h	20;"	d
+TFT_RST_PIN	sensor-display.h	35;"	d
+TFT_SPI_CS_PIN	sensor-display.h	33;"	d
+TFT_SPI_DC_PIN	sensor-display.h	34;"	d
+TOUCH_IRQ_PIN	sensor-display.h	37;"	d
+TOUCH_SPI_CS_PIN	sensor-display.h	36;"	d
+UNUSED_PIN	sensor-display.h	29;"	d
+USER_COMMAND_DURATION_MS	sensor-display.h	25;"	d
+USER_COMMAND_EXPIRED	sensor-display.h	26;"	d
+User_Command	sensor-display.h	/^} User_Command;$/;"	t	typeref:enum:__anon2
+XPT2046_X_HI	sensor-display.h	104;"	d
+XPT2046_X_LO	sensor-display.h	103;"	d
+XPT2046_Y_HI	sensor-display.h	106;"	d
+XPT2046_Y_LO	sensor-display.h	105;"	d
 __CATHYS_SENSOR_H__	cathys-sensor.h	7;"	d
 __SENSOR_DISPLAY_H__	sensor-display.h	7;"	d
 _accumulateIR	cathys-sensor.h	/^  bool           _accumulateIR;$/;"	m	class:Cathys_Sensor
@@ -86,27 +114,50 @@ _averageLED	cathys-sensor.h	/^  float          _averageLED, _averageValue;$/;"	m
 _averageValue	cathys-sensor.h	/^  float          _averageLED, _averageValue;$/;"	m	class:Cathys_Sensor
 _diode	cathys-sensor.h	/^  Infrared_Diode _diode[NUM_IR_DIODE];$/;"	m	class:Cathys_Sensor
 _diodeList	cathys-sensor.h	/^  std::list<Infrared_Diode> _diodeList;$/;"	m	class:Cathys_Sensor
+_draw	sensor-display.h	/^  void _draw(ILI9341_t3 &tft, char const *text, uint8_t size, uint16_t fgColor, uint16_t bgColor) {$/;"	f	class:Round_Button
+_drawSensor	sensor-display.h	/^  void _drawSensor() {$/;"	f	class:Sensor_Display
+_drawUI	sensor-display.h	/^  void _drawUI() {$/;"	f	class:Sensor_Display
+_fullButton	sensor-display.h	/^  Round_Button _fullButton;$/;"	m	class:Sensor_Display
+_height	sensor-display.h	/^  int16_t _height;$/;"	m	class:Round_Button
 _initialized	sensor-display.h	/^  bool _initialized;$/;"	m	class:Point2D
+_modeStatus	sensor-display.h	/^  char _modeStatus[8];$/;"	m	class:Sensor_Display
+_needsConfirm	sensor-display.h	/^  bool    _needsConfirm;$/;"	m	class:Round_Button
+_offButton	sensor-display.h	/^  Round_Button _offButton;$/;"	m	class:Sensor_Display
 _orientation	sensor-display.h	/^  Display_Orientation _orientation;$/;"	m	class:Sensor_Display
+_origin	sensor-display.h	/^  Point2D _origin;$/;"	m	class:Round_Button
+_passiveButton	sensor-display.h	/^  Round_Button _passiveButton;$/;"	m	class:Sensor_Display
 _pin	cathys-sensor.h	/^  uint8_t _pin;$/;"	m	class:Infrared_Diode
+_pressure	sensor-display.h	/^  int16_t _pressure; \/\/ force with which the button was pressed$/;"	m	class:Round_Button
+_radius	sensor-display.h	/^  int16_t _radius;$/;"	m	class:Round_Button
+_resetButton	sensor-display.h	/^  Round_Button _resetButton;$/;"	m	class:Sensor_Display
+_safeButton	sensor-display.h	/^  Round_Button _safeButton;$/;"	m	class:Sensor_Display
 _sensor	sensor-display.h	/^  Cathys_Sensor &_sensor;$/;"	m	class:Sensor_Display
 _spi_miso_pin	sensor-display.h	/^  uint8_t _spi_miso_pin;$/;"	m	class:Sensor_Display
 _spi_mosi_pin	sensor-display.h	/^  uint8_t _spi_mosi_pin;$/;"	m	class:Sensor_Display
 _spi_sclk_pin	sensor-display.h	/^  uint8_t _spi_sclk_pin;$/;"	m	class:Sensor_Display
+_text	sensor-display.h	/^  char const *_text;$/;"	m	class:Round_Button
 _tft	sensor-display.h	/^  ILI9341_t3 _tft;$/;"	m	class:Sensor_Display
 _tft_rst_pin	sensor-display.h	/^  uint8_t _tft_rst_pin;$/;"	m	class:Sensor_Display
 _tft_spi_cs_pin	sensor-display.h	/^  uint8_t _tft_spi_cs_pin;$/;"	m	class:Sensor_Display
 _tft_spi_dc_pin	sensor-display.h	/^  uint8_t _tft_spi_dc_pin;$/;"	m	class:Sensor_Display
 _time	cathys-sensor.h	/^  int16_t _time;$/;"	m	class:Infrared_Diode
 _touch	sensor-display.h	/^  XPT2046_Touchscreen _touch;$/;"	m	class:Sensor_Display
+_touchDown	sensor-display.h	/^  Button_Callback _touchDown; \/\/ called while button is pressed$/;"	m	class:Round_Button
+_touchUp	sensor-display.h	/^  Button_Callback _touchUp;   \/\/ called when button released$/;"	m	class:Round_Button
 _touch_irq_pin	sensor-display.h	/^  uint8_t _touch_irq_pin;$/;"	m	class:Sensor_Display
 _touch_spi_cs_pin	sensor-display.h	/^  uint8_t _touch_spi_cs_pin;$/;"	m	class:Sensor_Display
+_userCommand	sensor-display.h	/^  User_Command _userCommand;$/;"	m	class:Sensor_Display
+_userCommandTime	sensor-display.h	/^  unsigned long _userCommandTime;$/;"	m	class:Sensor_Display
 _value	cathys-sensor.h	/^  int16_t _value;$/;"	m	class:Infrared_Diode
+_wasTouched	sensor-display.h	/^  bool    _wasTouched;$/;"	m	class:Round_Button
+_width	sensor-display.h	/^  int16_t _width;$/;"	m	class:Round_Button
 active	cathys-sensor.h	/^  inline bool active(size_t i, float const minIntensity = IR_SIGNAL_MINIMUM) const {$/;"	f	class:Cathys_Sensor
-angle	cathys-sensor.h	/^  inline uint8_t angle() const { \/\/ output byte value between [0°, 180°]$/;"	f	class:Cathys_Sensor
+angle	cathys-sensor.h	/^  inline int16_t angle() const { \/\/ output byte value between [0°, 180°]$/;"	f	class:Cathys_Sensor
 begin	cathys-sensor.h	/^  void begin() {$/;"	f	class:Cathys_Sensor
 begin	sensor-display.h	/^  void begin(Display_Orientation orientation = DEFAULT_ORIENTATION) {$/;"	f	class:Sensor_Display
-drawSensor	sensor-display.h	/^  void drawSensor() {$/;"	f	class:Sensor_Display
+contains	sensor-display.h	/^  bool contains(const Point2D &point) const {$/;"	f	class:Round_Button
+draw	sensor-display.h	/^  void draw(ILI9341_t3 &tft, XPT2046_Touchscreen &touch, Sensor_Display &disp) {$/;"	f	class:Round_Button
+fullButtonDidTouch	sensor-display.h	/^  void fullButtonDidTouch() {$/;"	f	class:Sensor_Display
 grade	cathys-sensor.h	/^  inline float   grade() const { return Infrared_Diode::grade(_value); }$/;"	f	class:Infrared_Diode
 grade	cathys-sensor.h	/^  static inline float grade(int16_t value) {$/;"	f	class:Infrared_Diode
 haveSignal	cathys-sensor.h	/^  inline bool haveSignal(float const minIntensity = IR_SIGNAL_MINIMUM) const {$/;"	f	class:Cathys_Sensor
@@ -115,22 +166,38 @@ intensity	cathys-sensor.h	/^  inline float intensity(size_t i) const {$/;"	f	cla
 led	cathys-sensor.h	/^  inline uint8_t led()   const { return IR_DIODE_LED(_pin); }$/;"	f	class:Infrared_Diode
 loop	cathys-sensor.h	/^  void loop() {$/;"	f	class:Cathys_Sensor
 loop	sensor-display.h	/^  void loop() {$/;"	f	class:Sensor_Display
+offButtonDidTouch	sensor-display.h	/^  void offButtonDidTouch() {$/;"	f	class:Sensor_Display
 operator !=	sensor-display.h	/^  inline bool operator !=(const Point2D &point) const {$/;"	f	class:Point2D
 operator <	cathys-sensor.h	/^  inline bool operator <(const Infrared_Diode &diode) const {$/;"	f	class:Infrared_Diode
 operator ==	sensor-display.h	/^  inline bool operator ==(const Point2D &point) const {$/;"	f	class:Point2D
+originLED	sensor-display.h	/^const Point2D originLED[NUM_IR_DIODE] = {$/;"	v
+passiveButtonDidTouch	sensor-display.h	/^  void passiveButtonDidTouch() {$/;"	f	class:Sensor_Display
 pin	cathys-sensor.h	/^  inline uint8_t pin()   const { return _pin; }$/;"	f	class:Infrared_Diode
 ready	cathys-sensor.h	/^  inline bool ready() const {$/;"	f	class:Cathys_Sensor
+resetButtonDidTouch	sensor-display.h	/^  void resetButtonDidTouch() {$/;"	f	class:Sensor_Display
+safeButtonDidTouch	sensor-display.h	/^  void safeButtonDidTouch() {$/;"	f	class:Sensor_Display
+sdoCOUNT	sensor-display.h	/^  sdoCOUNT$/;"	e	enum:__anon1
 sdoDown	sensor-display.h	/^  sdoDown,   sdoPortrait      = sdoDown,  \/\/ = 0$/;"	e	enum:__anon1
 sdoLandscape	sensor-display.h	/^  sdoRight,  sdoLandscape     = sdoRight, \/\/ = 1$/;"	e	enum:__anon1
-sdoLandscapeFlip	sensor-display.h	/^  sdoLeft,   sdoLandscapeFlip = sdoLeft   \/\/ = 3$/;"	e	enum:__anon1
-sdoLeft	sensor-display.h	/^  sdoLeft,   sdoLandscapeFlip = sdoLeft   \/\/ = 3$/;"	e	enum:__anon1
+sdoLandscapeFlip	sensor-display.h	/^  sdoLeft,   sdoLandscapeFlip = sdoLeft,  \/\/ = 3$/;"	e	enum:__anon1
+sdoLeft	sensor-display.h	/^  sdoLeft,   sdoLandscapeFlip = sdoLeft,  \/\/ = 3$/;"	e	enum:__anon1
+sdoNONE	sensor-display.h	/^  sdoNONE                     = -1,$/;"	e	enum:__anon1
 sdoPortrait	sensor-display.h	/^  sdoDown,   sdoPortrait      = sdoDown,  \/\/ = 0$/;"	e	enum:__anon1
 sdoPortraitFlip	sensor-display.h	/^  sdoUp,     sdoPortraitFlip  = sdoUp,    \/\/ = 2$/;"	e	enum:__anon1
 sdoRight	sensor-display.h	/^  sdoRight,  sdoLandscape     = sdoRight, \/\/ = 1$/;"	e	enum:__anon1
 sdoUp	sensor-display.h	/^  sdoUp,     sdoPortraitFlip  = sdoUp,    \/\/ = 2$/;"	e	enum:__anon1
+setModeStatus	sensor-display.h	/^  void setModeStatus(char *stat) {$/;"	f	class:Sensor_Display
 setOrientation	sensor-display.h	/^  void setOrientation(Display_Orientation orientation) {$/;"	f	class:Sensor_Display
 time	cathys-sensor.h	/^  inline int16_t time()  const { return _time; }$/;"	f	class:Infrared_Diode
+ucmdCOUNT	sensor-display.h	/^  ucmdCOUNT$/;"	e	enum:__anon2
+ucmdFull	sensor-display.h	/^  ucmdFull,$/;"	e	enum:__anon2
+ucmdNONE	sensor-display.h	/^  ucmdNONE = -1,$/;"	e	enum:__anon2
+ucmdOff	sensor-display.h	/^  ucmdOff,$/;"	e	enum:__anon2
+ucmdPassive	sensor-display.h	/^  ucmdPassive,$/;"	e	enum:__anon2
+ucmdReset	sensor-display.h	/^  ucmdReset,$/;"	e	enum:__anon2
+ucmdSafe	sensor-display.h	/^  ucmdSafe,$/;"	e	enum:__anon2
 update	cathys-sensor.h	/^  void update() {$/;"	f	class:Infrared_Diode
+userCommand	sensor-display.h	/^  User_Command userCommand() {$/;"	f	class:Sensor_Display
 valid	cathys-sensor.h	/^  inline bool valid() const {$/;"	f	class:Infrared_Diode
 valid	cathys-sensor.h	/^  inline bool valid(size_t i) const {$/;"	f	class:Cathys_Sensor
 valid	sensor-display.h	/^  inline bool valid() const {$/;"	f	class:Point2D
