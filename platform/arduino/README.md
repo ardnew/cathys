@@ -4,7 +4,8 @@ cathys-sensor
 This package contains the C++ code for controlling the sensor suite used by the
 autonomous navigation system. Also implemented is a TFT touch screen interface
 for displaying real-time sensor data and accepting configuration feedback from
-the user at runtime.
+the user at runtime. The user can view and control in real-time via touchscreen
+the robot's operating mode, battery state, and other runtime characteristics.
 
 Currently, the following COTS products are used for implementation:
   - [PJRC Teensy 3.6][t36] - Primary controller board ([datasheet][t36data])
