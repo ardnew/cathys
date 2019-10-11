@@ -33,7 +33,7 @@ int16_t const POLL_FREQ_MS = 10; // frequency in which we poll all sensors (mill
 
 // configuration for the IR signal low-pass filter (rolling mean)
 int16_t const IR_POLL_FREQ_MS     =   10;
-int16_t const IR_SAMPLE_WINDOW_MS = 5000; // (5-second sampling)
+int16_t const IR_SAMPLE_WINDOW_MS = 2500; // (2.5-second sampling)
 #define HAS_SAMPLE_WINDOW_EXPIRED(since) (millis() - (since) >= IR_SAMPLE_WINDOW_MS)
 float   const IR_SIGNAL_MINIMUM   = 100.0 / NUM_IR_DIODE; // signal validity threshold in [0%, 100%]
 
