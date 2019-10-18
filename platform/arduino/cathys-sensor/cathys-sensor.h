@@ -176,9 +176,9 @@ public:
   inline float intensity() const {
     return Infrared_Diode::grade(_averageValue);
   }
-  inline int16_t angle() const { // output byte value between [0°, 180°]
-#define ANGLE_MIN_DEG   0
-#define ANGLE_MAX_DEG 180
+  inline int16_t angle() const { // output byte value between [-90°, 90°]
+#define ANGLE_MIN_DEG -90
+#define ANGLE_MAX_DEG  90
     int16_t angle = ANGLE_MIN_DEG +
       (ANGLE_MAX_DEG - ANGLE_MIN_DEG) * _averageLED / (NUM_IR_DIODE - 1);
     if (angle < ANGLE_MIN_DEG) { angle = ANGLE_MIN_DEG; }
