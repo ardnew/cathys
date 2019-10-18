@@ -489,7 +489,9 @@ public:
           "Off", 122, 52, 76, 36, 5,
           &Sensor_Display::offButtonDidTouch
         ),
-        _modeStatus("")
+        _connStatus(false),
+        _modeStatus(""),
+        _battStatus(0)
   {
     // override the default colors for "Reset" and "Off" buttons
     _resetButton.setColors(
@@ -567,9 +569,20 @@ public:
     _userCommand     = ucmdOff;
   }
 
+  void setConnStatus(bool stat) {
+    _connStatus = stat;
+  }
+
   void setModeStatus(char *stat) {
     memset(_modeStatus, 0, 8);
     strncpy(_modeStatus, stat, 7);
+  }
+
+  void setBattStatus(uint16_t stat) {
+    _battStatus = 0;
+    if (stat <= 100/*percent*/) {
+      _battStatus = stat;
+    }
   }
 
 private:
@@ -601,7 +614,9 @@ private:
   Round_Button _resetButton;
   Round_Button _offButton;
 
-  char _modeStatus[8];
+  bool     _connStatus;
+  char     _modeStatus[8];
+  uint16_t _battStatus;
 
   void _drawUI() {
 
@@ -611,13 +626,21 @@ private:
     _resetButton.  draw(_tft, _touch, *this);
     _offButton.    draw(_tft, _touch, *this);
 
-    _tft.fillRect(64, 92, 56, 58, GFX_STATUS_ACT_BG_COLOR);
+    _tft.fillRect(64, 92, 120, 58, GFX_STATUS_ACT_BG_COLOR);
     _tft.setTextColor(GFX_STATUS_ACT_FG_COLOR);
-    _tft.setTextSize(1);
-    _tft.setCursor(18, 108);
-    _tft.printf("OI mode: %4s\n", _modeStatus);
-    _tft.setCursor(18, 118);
-    _tft.printf("Battery: %3d%%\n", 99);
+    _tft.setTextSize(2);
+    if (_connStatus) {
+      _tft.setCursor(8, 102);
+      _tft.printf("Mode:%4s", _modeStatus);
+      _tft.setCursor(8, 122);
+      _tft.printf("Batt:%3d%%", _battStatus);
+    }
+    else {
+      _tft.setCursor(8, 102);
+      _tft.print("Mode: --");
+      _tft.setCursor(8, 122);
+      _tft.print("Batt: --");
+    }
   }
 
   void _drawSensor() {
