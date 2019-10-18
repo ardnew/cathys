@@ -15,6 +15,9 @@
 
 static const int SERIAL_BAUD_RATE  = 115200; // bps
 static const int CATHYS_INPUT_SIZE =   1024; // bytes
+static const int INPUT_TOKEN_SIZE  =     32; // bytes
+static const int RELAY_TIMEOUT_MS  =   2000; // milliseconds
+#define HAS_RELAY_TIMED_OUT(since) (millis() - (since) >= RELAY_TIMEOUT_MS)
 
 typedef enum {
   srrNotComplete,
@@ -24,7 +27,11 @@ typedef enum {
 Cathys_Sensor sensor = Cathys_Sensor();
 Sensor_Display display = Sensor_Display(sensor);
 
-char cathysRawInput[CATHYS_INPUT_SIZE]; // data received over the serial port
+uint16_t relayMessageTime;
+char     cathysRawInput[CATHYS_INPUT_SIZE]; // full message received via serial
+uint16_t connStatus;
+char     modeStatus[INPUT_TOKEN_SIZE];
+uint16_t battStatus;
 
 const size_t sensorDocSize = JSON_OBJECT_SIZE(3);
 DynamicJsonDocument sensorDoc = DynamicJsonDocument(sensorDocSize);
@@ -34,6 +41,12 @@ void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
 
   while (!Serial) continue;
+
+  relayMessageTime = 0;
+  *cathysRawInput  = '\0';
+  connStatus       = 0;
+  *modeStatus      = '\0';
+  battStatus       = 0;
 
   sensor.begin();
   display.begin();
@@ -72,10 +85,25 @@ void loop() {
 
   switch ((readResult = readSerial(cathysRawInput))) {
     case srrComplete:
-      display.setModeStatus(cathysRawInput);
+      sscanf(cathysRawInput, "%hu %s %hu",
+        &connStatus, modeStatus, &battStatus);
+      if (!!connStatus) {
+        relayMessageTime = millis();
+        display.setConnStatus(true);
+      }
+      else {
+        if (HAS_RELAY_TIMED_OUT(relayMessageTime)) {
+          display.setConnStatus(false);
+        }
+      }
+      display.setModeStatus(modeStatus);
+      display.setBattStatus(battStatus);
       break;
     case srrNotComplete:
     default:
+      if (HAS_RELAY_TIMED_OUT(relayMessageTime)) {
+        //display.setConnStatus(false);
+      }
       break;
   }
 }
