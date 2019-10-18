@@ -10,11 +10,18 @@ import (
 )
 
 const (
-	defaultBaudRateBPS int = 115200
+	defaultBaudRateBPS int     = 115200
+	minIRIntensity     float32 = 100.0 / 6.0 // num IR diodes == 6
 )
 
 const (
-	ucmdMode int16 = iota - 1
+	ucmdNONE = iota - 1
+	ucmdPassive
+	ucmdSafe
+	ucmdFull
+	ucmdReset
+	ucmdOff
+	ucmdCOUNT
 )
 
 type Sensor struct {
@@ -69,7 +76,7 @@ func (s *Sensor) Data() (*SensorData, bool) {
 		jsonBufSize = 1.5*jsonDataSize + 1
 	)
 	var (
-		data = SensorData{}
+		data = SensorData{UserCommand: ucmdNONE, IRAngle: -1, IRIntensity: -1}
 	)
 	buf := make([]byte, jsonBufSize)
 	if s.Read(buf) > 0 {
@@ -80,6 +87,7 @@ func (s *Sensor) Data() (*SensorData, bool) {
 				if err := json.Unmarshal([]byte(str), &data); nil != err {
 					s.errorLog.Printf("failed to unmarshal JSON data: %+v", str)
 				} else {
+					//if data.IRAngle > 0 && data.IRIntensity > 0
 					return &data, true
 				}
 			}
