@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"strings"
+
+	"github.com/ardnew/oibot"
 
 	"github.com/tarm/serial"
 )
@@ -85,15 +88,38 @@ func (s *Sensor) Data() (*SensorData, bool) {
 			// only helps reduce the number of errors logged to output.
 			if strings.HasPrefix(str, "{") && strings.HasSuffix(str, "}") {
 				if err := json.Unmarshal([]byte(str), &data); nil != err {
-					s.errorLog.Printf("failed to unmarshal JSON data: %+v", str)
+					//s.errorLog.Printf("failed to unmarshal JSON data: %+v", str)
 				} else {
-					//if data.IRAngle > 0 && data.IRIntensity > 0
 					return &data, true
 				}
 			}
 		}
 	}
 	return nil, false
+}
+
+func (s *Sensor) FormatUplinkStatus(stat *oibot.InfoStatus) (string, bool) {
+
+	var validMode bool
+
+	// not connected by default
+	connectedFlag := int32(0)
+	botStatusMode := "N/C"
+	botStatusBatt := int32(0)
+
+	if nil != stat {
+		if botStatusMode, validMode = oibot.OIModeStr(stat.Mode); validMode {
+			batt := float64(stat.Battery.BatteryChargemAh) / float64(stat.Battery.BatteryCapacitymAh)
+			botStatusBatt = int32(math.Round(batt * 100.0))
+			connectedFlag = 1
+		} else {
+			botStatusMode = "ERR"
+			botStatusBatt = 0
+			connectedFlag = 1
+		}
+		return fmt.Sprintf("%d %s %d\n", connectedFlag, botStatusMode, botStatusBatt), true
+	}
+	return fmt.Sprintf("%d %s %d\n", connectedFlag, botStatusMode, botStatusBatt), false
 }
 
 func (s *Sensor) Write(buf []byte) {

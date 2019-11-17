@@ -18,81 +18,68 @@ type TaskInfo struct {
 	errorLog *log.Logger
 	ssuData  chan *SensorData
 	botStat  chan *oibot.InfoStatus
-	userCmd  chan int16
-	exitSig  CleanSignal
+	waitGrp  *sync.WaitGroup
 }
 
 type SerialInfo struct {
+	init    bool
 	path    string
 	baud    int
 	timeout time.Duration
 }
 
-type AtomicValue struct {
-	*sync.Mutex
-	bool // currently only need bool support. append as required
-}
+type TaskSignal os.Signal
+type TaskSignalQ chan os.Signal
 
-func MakeAtomicValue(val ...interface{}) *AtomicValue {
-	return &AtomicValue{
-		Mutex: &sync.Mutex{}, bool: val[0].(bool),
-	}
-}
+const (
+	resetSignal = syscall.SIGUSR1
 
-func (a *AtomicValue) GetBool() bool {
-	a.Mutex.Lock()
-	val := a.bool
-	a.Mutex.Unlock()
-	return val
-}
-func (a *AtomicValue) SetBool(val bool) {
-	a.Mutex.Lock()
-	a.bool = val
-	a.Mutex.Unlock()
-}
+	// duration to wait before forcefully terminating a task that was sent a
+	// halt or reset signal
+	joinTimeout = 5 * time.Second
+)
 
-type CleanSignal chan os.Signal
-
-func cleanup(parent CleanSignal, child ...CleanSignal) {
+func waitForSignal(parent TaskSignalQ, ignore []TaskSignal, child ...TaskSignalQ) TaskSignal {
 	// wait until we've received a signal from the parent goroutine
 	p := <-parent
-	// forward that signal onto each child goroutine
-	for _, c := range child {
-		c <- p
+	// ensure it is a signal we don't ignore
+	forward := true
+	for _, i := range ignore {
+		if p == i {
+			forward = false
+			break
+		}
 	}
-	//time.Sleep(time.Millisecond * 100)
+	// forward that signal onto each child goroutine
+	if forward {
+		for _, c := range child {
+			c <- p
+		}
+	}
+	return p
 }
 
-func oibotTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) bool {
+func oibotTask(task *TaskInfo, serial *SerialInfo, clean TaskSignalQ, ssuSignal TaskSignalQ) bool {
 
 	// initialize the object, prepare for entering into state machine
-	bot := oibot.MakeOIBot(task.infoLog, task.errorLog, serial.path, serial.baud, serial.timeout)
+	bot := oibot.MakeOIBot(task.infoLog, task.errorLog, serial.init, serial.path, serial.baud, serial.timeout)
 
-	// always attempt to re-establish connection with the roomba by default
-	res := MakeAtomicValue(true)
+	wait := &sync.WaitGroup{}
+	wait.Add(2)
 
-	infExit := make(CleanSignal)
-	datExit := make(CleanSignal)
+	botInSignal := make(TaskSignalQ)
+	botOutSignal := make(TaskSignalQ)
 
-	//bot.Drive(-100, 2)
-	//time.Sleep(1000 * time.Millisecond)
-	//data = bot.Battery()
-	//time.Sleep(1000 * time.Millisecond)
-	//bot.DriveStop()
-	//infoLog.Printf("%v (%T)", data, data)
-
-	go func(b *oibot.OIBot, i *TaskInfo, s *SerialInfo, c CleanSignal, d CleanSignal, a *AtomicValue, t <-chan time.Time) {
+	go func(b *oibot.OIBot, i *TaskInfo, s *SerialInfo, c TaskSignalQ, u TaskSignalQ, w *sync.WaitGroup, t <-chan time.Time) {
+		defer w.Done()
 		for {
 			select {
 			case l := <-c:
 				switch l {
-				case syscall.SIGUSR1:
-					i.infoLog.Printf("caught signal %+v, restarting bot sensor suite relay", l)
-					i.exitSig <- nil
+				case resetSignal:
+					i.infoLog.Printf("caught signal %+v, restarting relay: bot-serial 🠊 ssu-channel", l)
 				default:
-					a.SetBool(false)
-					i.errorLog.Printf("caught signal %+v, terminating bot health serial monitor", l)
-					i.exitSig <- l
+					i.errorLog.Printf("caught signal %+v, terminating relay: bot-serial 🠊 ssu-channel", l)
 				}
 				return
 			case <-t:
@@ -106,27 +93,26 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) bool {
 			default:
 			}
 		}
-	}(bot, task, serial, infExit, datExit, res, time.Tick(1000*time.Millisecond))
+	}(bot, task, serial, botInSignal, ssuSignal, wait, time.Tick(500*time.Millisecond))
 
-	go func(b *oibot.OIBot, i *TaskInfo, s *SerialInfo, c CleanSignal, d CleanSignal, a *AtomicValue) {
+	go func(b *oibot.OIBot, i *TaskInfo, s *SerialInfo, c TaskSignalQ, u TaskSignalQ, w *sync.WaitGroup) {
 		const (
+			baudPulseRateMS       = 10000 * time.Millisecond
 			userCommandDurationMS = 1000 * time.Millisecond
 			driveDurationMS       = 500 * time.Millisecond
+			driveVelocityMMpS     = int16(90)
 		)
+		defer w.Done()
 		userCommandLastTime := time.Now()
 		driveLastTime := time.Now()
 		for {
 			select {
 			case l := <-c:
 				switch l {
-				case syscall.SIGUSR1:
-					i.infoLog.Printf("caught signal %+v, restarting bot sensor suite relay", l)
-					i.exitSig <- nil
+				case resetSignal:
+					i.infoLog.Printf("caught signal %+v, restarting relay: ssu-channel 🠊 bot-serial", l)
 				default:
-					a.SetBool(false)
-					i.errorLog.Printf("caught signal %+v, terminating bot sensor suite relay", l)
-					i.exitSig <- l
-					b.Passive()
+					i.errorLog.Printf("caught signal %+v, terminating relay: ssu-channel 🠊 bot-serial", l)
 				}
 				return
 			case dat := <-i.ssuData:
@@ -134,23 +120,30 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) bool {
 					switch dat.UserCommand {
 					case ucmdPassive:
 						i.infoLog.Printf("sending passive: %+v", dat)
-						//b.Passive()
+						b.Passive()
 						userCommandLastTime = time.Now()
 					case ucmdSafe:
 						i.infoLog.Printf("sending safe: %+v", dat)
-						//b.Safe()
+						b.Safe()
 						userCommandLastTime = time.Now()
 					case ucmdFull:
 						i.infoLog.Printf("sending full: %+v", dat)
-						//b.Full()
+						b.Full()
 						userCommandLastTime = time.Now()
 					case ucmdReset:
 						i.infoLog.Printf("sending reset: %+v", dat)
-						//b.Reset()
+						b.Passive()
+						<-time.After(1000 * time.Millisecond)
+						b.Reset()
+						b.Close()
+						// send the reset signal only to the ssu task so that we can ensure
+						// the order in which tasks are started. the ssu task automatically
+						// sends a reset signal to the bot task once it receives this.
+						u <- resetSignal
 						userCommandLastTime = time.Now()
 					case ucmdOff:
 						i.infoLog.Printf("sending off: %+v", dat)
-						//b.Power()
+						b.Power()
 						userCommandLastTime = time.Now()
 					case ucmdNONE, ucmdCOUNT:
 					default:
@@ -158,14 +151,23 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) bool {
 				}
 				if dat.IRIntensity > minIRIntensity {
 					if time.Since(driveLastTime) > driveDurationMS {
-						radius := float32(-1*dat.IRAngle) / 90.0 * float32(oibot.MaxDriveRadiusMM)
-						if radius < 0 {
-							radius += float32(oibot.MaxDriveRadiusMM)
+						//radius := float32(-1*dat.IRAngle) / 90.0 * float32(oibot.MaxDriveRadiusMM)
+						//if radius < 0 {
+						//	radius += float32(oibot.MaxDriveRadiusMM)
+						//} else {
+						//	radius -= float32(oibot.MaxDriveRadiusMM)
+						//}
+						angle := int16(math.Round(math.Abs(float64(dat.IRAngle))))
+						rvelo := driveVelocityMMpS
+						lvelo := driveVelocityMMpS
+						if dat.IRAngle < 0 {
+							lvelo -= angle
 						} else {
-							radius -= float32(oibot.MaxDriveRadiusMM)
+							rvelo -= angle
 						}
-						i.infoLog.Printf("drive: %f @ %f", radius, dat.IRIntensity)
-						b.Drive(int16(dat.IRIntensity), int16(radius))
+						sym := oibot.AngleRune(dat.IRAngle, 3)
+						i.infoLog.Printf("drive: (%d°,%.1f%%): %d⇈%d [ %c ]", dat.IRAngle, dat.IRIntensity, lvelo, rvelo, sym)
+						//b.DriveWheels(rvelo, lvelo)
 						driveLastTime = time.Now()
 					}
 				}
@@ -173,29 +175,37 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) bool {
 			default:
 			}
 		}
-	}(bot, task, serial, datExit, infExit, res)
+	}(bot, task, serial, botOutSignal, ssuSignal, wait)
 
-	cleanup(clean, infExit, datExit)
+	s := waitForSignal(clean, []TaskSignal{}, botInSignal, botOutSignal)
 
-	a := res.GetBool()
+	wait.Wait()
 
-	return a
+	return resetSignal == s
 }
 
-func senseTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) {
+func senseTask(task *TaskInfo, serial *SerialInfo, clean TaskSignalQ, botSignal TaskSignalQ) bool {
 
 	// initialize the object, prepare for entering into state machine
 	ssu := MakeSensor(task.infoLog, task.errorLog, serial.path, serial.baud)
 
-	inpExit := make(CleanSignal)
-	outExit := make(CleanSignal)
+	wait := &sync.WaitGroup{}
+	wait.Add(2)
 
-	go func(s *Sensor, i *TaskInfo, c CleanSignal, t <-chan time.Time) {
+	ssuInSignal := make(TaskSignalQ)
+	ssuOutSignal := make(TaskSignalQ)
+
+	go func(s *Sensor, i *TaskInfo, c TaskSignalQ, w *sync.WaitGroup, t <-chan time.Time) {
+		defer w.Done()
 		for {
 			select {
 			case l := <-c:
-				i.errorLog.Printf("caught signal %+v, terminating sensor suite serial monitor", l)
-				i.exitSig <- l
+				switch l {
+				case resetSignal:
+					i.errorLog.Printf("caught signal %+v, restarting relay: ssu-serial 🠊 bot-channel", l)
+				default:
+					i.errorLog.Printf("caught signal %+v, terminating relay: ssu-serial 🠊 bot-channel", l)
+				}
 				return
 			case <-t:
 				if data, ok := s.Data(); ok {
@@ -204,38 +214,34 @@ func senseTask(task *TaskInfo, serial *SerialInfo, clean CleanSignal) {
 			default:
 			}
 		}
-	}(ssu, task, inpExit, time.Tick(10*time.Millisecond))
+	}(ssu, task, ssuInSignal, wait, time.Tick(10*time.Millisecond))
 
-	go func(s *Sensor, i *TaskInfo, c CleanSignal, t <-chan time.Time) {
-		const (
-			oibotNotConnected = 0
-			oibotConnected    = 1
-		)
+	go func(s *Sensor, i *TaskInfo, c TaskSignalQ, w *sync.WaitGroup) {
+		defer w.Done()
 		for {
 			select {
 			case l := <-c:
-				i.errorLog.Printf("caught signal %+v, terminating sensor suite input relay", l)
-				i.exitSig <- l
+				switch l {
+				case resetSignal:
+					i.errorLog.Printf("caught signal %+v, restarting relay: bot-channel 🠊 ssu-serial", l)
+				default:
+					i.errorLog.Printf("caught signal %+v, terminating relay: bot-channel 🠊 ssu-serial", l)
+				}
 				return
-			case <-t:
-				//i.infoLog.Printf("setting mode = %s", mode)
 			case stat := <-i.botStat:
-				if nil == stat {
-					statOut := fmt.Sprintf("%d %s %d\n", oibotNotConnected, "N/C", 0)
-					s.Write([]byte(statOut))
-				} else {
-					if mode, ok := oibot.OIModeStr(stat.Mode); ok {
-						batt := float64(stat.Battery.BatteryChargemAh) / float64(stat.Battery.BatteryCapacitymAh) * 100.0
-						statOut := fmt.Sprintf("%d %s %d\n", oibotConnected, mode, int32(math.Round(batt)))
-						s.Write([]byte(statOut))
-					}
+				if fmt, ok := s.FormatUplinkStatus(stat); ok {
+					s.Write([]byte(fmt))
 				}
 			default:
 			}
 		}
-	}(ssu, task, outExit, time.Tick(250*time.Millisecond))
+	}(ssu, task, ssuOutSignal, wait)
 
-	cleanup(clean, inpExit, outExit)
+	s := waitForSignal(clean, []TaskSignal{}, ssuInSignal, ssuOutSignal)
+
+	wait.Wait()
+
+	return resetSignal == s
 }
 
 func main() {
@@ -252,39 +258,84 @@ func main() {
 
 	botPath := os.Args[1]
 	botBaud := oibot.DefaultBaudRateBPS
-	botExit := make(CleanSignal)
+	botSign := make(TaskSignalQ)
 
 	ssuPath := os.Args[2]
 	ssuBaud := defaultBaudRateBPS // defined in sensor.go
-	ssuExit := make(CleanSignal)
+	ssuSign := make(TaskSignalQ)
 
-	clean := make(CleanSignal)
-	signal.Notify(clean, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	clean := make(TaskSignalQ)
+	signal.Notify(clean, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, resetSignal)
 
 	task := TaskInfo{
 		infoLog:  log.New(os.Stdout, "[ ] ", log.Ltime),
 		errorLog: log.New(os.Stderr, "[!] ", log.Ltime|log.Lshortfile),
 		ssuData:  make(chan *SensorData),
 		botStat:  make(chan *oibot.InfoStatus),
-		userCmd:  make(chan int16),
-		exitSig:  make(CleanSignal),
+		waitGrp:  &sync.WaitGroup{},
 	}
 
-	go func(i *TaskInfo, s *SerialInfo, c CleanSignal) {
+	task.waitGrp.Add(2)
+
+	go func(i *TaskInfo, s *SerialInfo, c TaskSignalQ, n TaskSignalQ) {
+		defer i.waitGrp.Done()
 		for {
-			if oibotTask(i, s, c) {
-				i.infoLog.Print("restarting bot task")
+			if oibotTask(i, s, c, n) {
+				rem := oibot.BootupTimeMS
+				ind := 1 * time.Second
+				pre := fmt.Sprintf("%s%v", i.infoLog.Prefix(), time.Now().Format("15:04:05"))
+				fmt.Fprintf(i.infoLog.Writer(), "%s restarting bot task in: ", pre)
+				for range time.Tick(ind) {
+					fmt.Fprintf(i.infoLog.Writer(), "%v ", rem)
+					rem -= ind
+					if rem <= 0 {
+						fmt.Fprintln(i.infoLog.Writer())
+						break
+					}
+				}
+				s.init = false
 			} else {
 				break
 			}
 		}
-	}(&task, &SerialInfo{botPath, botBaud, oibot.DefaultReadTimeoutMS}, botExit)
+	}(&task, &SerialInfo{true, botPath, botBaud, oibot.DefaultReadTimeoutMS}, botSign, ssuSign)
 
-	go func(i *TaskInfo, s *SerialInfo, c CleanSignal) {
-		senseTask(i, s, c)
-	}(&task, &SerialInfo{ssuPath, ssuBaud, oibot.NeverReadTimeoutMS}, ssuExit)
+	go func(i *TaskInfo, s *SerialInfo, c TaskSignalQ, n TaskSignalQ) {
+		defer i.waitGrp.Done()
+		for {
+			if senseTask(i, s, c, n) {
+				i.infoLog.Print("restarting ssu task")
+				s.init = false
+				// if we are restarting, notify the bot task to restart
+				n <- resetSignal
+			} else {
+				break
+			}
+		}
+	}(&task, &SerialInfo{true, ssuPath, ssuBaud, oibot.NeverReadTimeoutMS}, ssuSign, botSign)
 
-	cleanup(clean, botExit, ssuExit)
+	for {
+		s := waitForSignal(clean, []TaskSignal{resetSignal}, botSign, ssuSign)
+		if resetSignal != s {
+			break
+		} else {
+			ssuSign <- s
+		}
+	}
 
-	task.infoLog.Print("exited gracefully")
+	finished := make(chan interface{})
+
+	go func(i *TaskInfo, f chan interface{}) {
+		i.waitGrp.Wait()
+		task.infoLog.Print("exiting gracefully")
+		f <- true // value unused
+	}(&task, finished)
+
+	go func(i *TaskInfo, f chan interface{}) {
+		<-time.After(joinTimeout)
+		task.infoLog.Print("exiting forcefully")
+		f <- false // value unused
+	}(&task, finished)
+
+	<-finished
 }
