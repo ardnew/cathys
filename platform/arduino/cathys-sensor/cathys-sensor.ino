@@ -13,7 +13,16 @@
 #include "cathys-sensor.h"
 #include "sensor-display.h"
 
+#define SERIAL_OUTPUT_REQUIRED
+
 static const int SERIAL_BAUD_RATE  = 115200; // bps
+static const int SERIAL_TIMEOUT_MS =  10000; // milliseconds
+#if defined(SERIAL_OUTPUT_REQUIRED)
+#define WAIT_FOR_SERIAL (!Serial)
+#else
+#define WAIT_FOR_SERIAL (!Serial && (millis() < SERIAL_TIMEOUT_MS))
+#endif
+
 static const int CATHYS_INPUT_SIZE =   1024; // bytes
 static const int INPUT_TOKEN_SIZE  =     32; // bytes
 static const int RELAY_TIMEOUT_MS  =   2000; // milliseconds
@@ -40,7 +49,7 @@ void setup() {
 
   Serial.begin(SERIAL_BAUD_RATE);
 
-  while (!Serial) continue;
+  while WAIT_FOR_SERIAL continue;
 
   relayMessageTime = 0;
   *cathysRawInput  = '\0';
