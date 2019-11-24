@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"os/signal"
 	"sync"
@@ -59,10 +58,55 @@ func waitForSignal(parent TaskSignalQ, ignore []TaskSignal, child ...TaskSignalQ
 	return p
 }
 
+type velocityPair struct {
+	left  int16
+	right int16
+}
+
+type driveParams struct {
+	velocityMMPerSec int16
+	radiusMM         int16
+}
+
+const (
+	minWheelVelocityMMPerSec int16 = 0
+	maxWheelVelocityMMPerSec int16 = 100
+)
+
+var (
+	wheelVelocityMMPerSec = []velocityPair{
+		{left: 0, right: 0}, // DirStop
+		{left: -maxWheelVelocityMMPerSec, right: maxWheelVelocityMMPerSec}, // DirLeft
+		{left: minWheelVelocityMMPerSec, right: maxWheelVelocityMMPerSec},  // DirLeftFwd
+		{left: maxWheelVelocityMMPerSec, right: maxWheelVelocityMMPerSec},  // DirFwd
+		{left: maxWheelVelocityMMPerSec, right: minWheelVelocityMMPerSec},  // DirRightFwd
+		{left: maxWheelVelocityMMPerSec, right: -maxWheelVelocityMMPerSec}, // DirRight
+		{left: maxWheelVelocityMMPerSec, right: -maxWheelVelocityMMPerSec}, // DirRightAft
+		{left: 0, right: 0}, // DirAft
+		{left: -maxWheelVelocityMMPerSec, right: maxWheelVelocityMMPerSec}, // DirLeftAft
+	}
+)
+
+var (
+	driveDirection = []driveParams{
+		{velocityMMPerSec: minWheelVelocityMMPerSec, radiusMM: 0x7FFF}, // DirStop
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: +1},     // DirLeft
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: 500},    // DirLeftFwd
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: 0x7FFF}, // DirFwd
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: -500},   // DirRightFwd
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: -1},     // DirRight
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: -1},     // DirRightAft
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: 0x7FFF}, // DirAft
+		{velocityMMPerSec: maxWheelVelocityMMPerSec, radiusMM: +1},     // DirLeftAft
+	}
+)
+
 func oibotTask(task *TaskInfo, serial *SerialInfo, clean TaskSignalQ, ssuSignal TaskSignalQ) bool {
 
 	// initialize the object, prepare for entering into state machine
 	bot := oibot.MakeOIBot(task.infoLog, task.errorLog, serial.init, serial.path, serial.baud, serial.timeout)
+	// time.Sleep(500 * time.Millisecond)
+	// bot.Safe()
 
 	wait := &sync.WaitGroup{}
 	wait.Add(2)
@@ -85,6 +129,9 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean TaskSignalQ, ssuSignal 
 			case <-t:
 				if stat, ok := b.Info(); ok {
 					i.infoLog.Printf("status: mode=%v, batt=%+v", stat.Mode, stat.Battery)
+					if oibot.OIMPassive == stat.Mode {
+						i.ssuData <- &SensorData{UserCommand: ucmdSafe, IRAngle: -1, IRIntensity: -1, Injected: true}
+					}
 					i.botStat <- stat
 				} else {
 					i.errorLog.Printf("could not decode oibot status")
@@ -99,12 +146,12 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean TaskSignalQ, ssuSignal 
 		const (
 			baudPulseRateMS       = 10000 * time.Millisecond
 			userCommandDurationMS = 1000 * time.Millisecond
-			driveDurationMS       = 500 * time.Millisecond
-			driveVelocityMMpS     = int16(90)
+			driveDurationMS       = 1000 * time.Millisecond
 		)
 		defer w.Done()
 		userCommandLastTime := time.Now()
 		driveLastTime := time.Now()
+		driveLastDirection := oibot.DirStop
 		for {
 			select {
 			case l := <-c:
@@ -149,26 +196,30 @@ func oibotTask(task *TaskInfo, serial *SerialInfo, clean TaskSignalQ, ssuSignal 
 					default:
 					}
 				}
-				if dat.IRIntensity > minIRIntensity {
-					if time.Since(driveLastTime) > driveDurationMS {
-						//radius := float32(-1*dat.IRAngle) / 90.0 * float32(oibot.MaxDriveRadiusMM)
-						//if radius < 0 {
-						//	radius += float32(oibot.MaxDriveRadiusMM)
-						//} else {
-						//	radius -= float32(oibot.MaxDriveRadiusMM)
-						//}
-						angle := int16(math.Round(math.Abs(float64(dat.IRAngle))))
-						rvelo := driveVelocityMMpS
-						lvelo := driveVelocityMMpS
-						if dat.IRAngle < 0 {
-							lvelo -= angle
-						} else {
-							rvelo -= angle
-						}
-						sym := oibot.AngleRune(dat.IRAngle, 3)
-						i.infoLog.Printf("drive: (%d°,%.1f%%): %d⇈%d [ %c ]", dat.IRAngle, dat.IRIntensity, lvelo, rvelo, sym)
-						//b.DriveWheels(rvelo, lvelo)
+				if time.Since(driveLastTime) > driveDurationMS {
+					var (
+						sym rune
+						dir oibot.Direction
+					)
+
+					if dat.IRIntensity > minIRIntensity {
+						sym, dir = oibot.AngleRune(dat.IRAngle, 3)
+					} else {
+						sym, dir = oibot.AngleRuneUnknown, oibot.DirStop
+					}
+
+					if dir != driveLastDirection {
+
+						//wheelMMPerSec := wheelVelocityMMPerSec[dir]
+						//i.infoLog.Printf("drive: (%d°,%.1f%%): %d⇈%d [ %c ]", dat.IRAngle, dat.IRIntensity, wheelMMPerSec.left, wheelMMPerSec.right, sym)
+						//b.DriveWheels(wheelMMPerSec.right, wheelMMPerSec.left)
+
+						driveDir := driveDirection[dir]
+						i.infoLog.Printf("drive: (%d°,%.1f%%): %d@%d [ %c ]", dat.IRAngle, dat.IRIntensity, driveDir.radiusMM, driveDir.velocityMMPerSec, sym)
+						b.Drive(driveDir.velocityMMPerSec, driveDir.radiusMM)
+
 						driveLastTime = time.Now()
+						driveLastDirection = dir
 					}
 				}
 

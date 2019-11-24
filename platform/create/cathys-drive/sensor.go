@@ -21,6 +21,7 @@ const (
 	ucmdNONE = iota - 1
 	ucmdPassive
 	ucmdSafe
+	ucmdTrack
 	ucmdFull
 	ucmdReset
 	ucmdOff
@@ -39,6 +40,7 @@ type SensorData struct {
 	UserCommand int16   `json:"user-command"`
 	IRAngle     int16   `json:"ir-angle"`
 	IRIntensity float32 `json:"ir-intensity"`
+	Injected    bool
 }
 
 func MakeSensor(infoLog *log.Logger, errorLog *log.Logger, path string, baud int) *Sensor {
@@ -79,7 +81,7 @@ func (s *Sensor) Data() (*SensorData, bool) {
 		jsonBufSize = 1.5*jsonDataSize + 1
 	)
 	var (
-		data = SensorData{UserCommand: ucmdNONE, IRAngle: -1, IRIntensity: -1}
+		data = SensorData{UserCommand: ucmdNONE, IRAngle: -1, IRIntensity: -1, Injected: false}
 	)
 	buf := make([]byte, jsonBufSize)
 	if s.Read(buf) > 0 {

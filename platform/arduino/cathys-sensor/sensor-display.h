@@ -185,28 +185,28 @@ private:
 #define NUM_IR_DIODE 6
 const Point2D originLED[NUM_IR_DIODE] = {
   Point2D(
-    GFX_MIDPT_X         + (( 1.0/*cos(0°)*/)                                * GFX_SENSOR_SUM_RADIUS),
-    GFX_SENSOR_ORIGIN_Y - (( 0.0/*sin(0°)*/)                                * GFX_SENSOR_SUM_RADIUS)
-  ),
-  Point2D(
-    GFX_MIDPT_X         + (( 0.8090169943749474241022934171828/*cos(36°)*/) * GFX_SENSOR_SUM_RADIUS),
-    GFX_SENSOR_ORIGIN_Y - (( 0.5877852522924731291687059546390/*sin(36°)*/) * GFX_SENSOR_SUM_RADIUS)
-  ),
-  Point2D(
-    GFX_MIDPT_X         + (( 0.3090169943749474241022934171828/*cos(72°)*/) * GFX_SENSOR_SUM_RADIUS),
-    GFX_SENSOR_ORIGIN_Y - (( 0.9510565162951535721164393333793/*sin(72°)*/) * GFX_SENSOR_SUM_RADIUS)
-  ),
-  Point2D(
-    GFX_MIDPT_X         + ((-0.3090169943749474241022934171828/*cos(108°)*/) * GFX_SENSOR_SUM_RADIUS),
-    GFX_SENSOR_ORIGIN_Y - (( 0.9510565162951535721164393333793/*sin(108°)*/) * GFX_SENSOR_SUM_RADIUS)
+    GFX_MIDPT_X         + ((-1.0/*cos(180°)*/)                               * GFX_SENSOR_SUM_RADIUS),
+    GFX_SENSOR_ORIGIN_Y - (( 0.0/*sin(180°)*/)                               * GFX_SENSOR_SUM_RADIUS)
   ),
   Point2D(
     GFX_MIDPT_X         + ((-0.8090169943749474241022934171828/*cos(144°)*/) * GFX_SENSOR_SUM_RADIUS),
     GFX_SENSOR_ORIGIN_Y - (( 0.5877852522924731291687059546390/*sin(144°)*/) * GFX_SENSOR_SUM_RADIUS)
   ),
   Point2D(
-    GFX_MIDPT_X         + ((-1.0/*cos(180°)*/)                               * GFX_SENSOR_SUM_RADIUS),
-    GFX_SENSOR_ORIGIN_Y - (( 0.0/*sin(180°)*/)                               * GFX_SENSOR_SUM_RADIUS)
+    GFX_MIDPT_X         + ((-0.3090169943749474241022934171828/*cos(108°)*/) * GFX_SENSOR_SUM_RADIUS),
+    GFX_SENSOR_ORIGIN_Y - (( 0.9510565162951535721164393333793/*sin(108°)*/) * GFX_SENSOR_SUM_RADIUS)
+  ),
+  Point2D(
+    GFX_MIDPT_X         + (( 0.3090169943749474241022934171828/*cos(72°)*/) * GFX_SENSOR_SUM_RADIUS),
+    GFX_SENSOR_ORIGIN_Y - (( 0.9510565162951535721164393333793/*sin(72°)*/) * GFX_SENSOR_SUM_RADIUS)
+  ),
+  Point2D(
+    GFX_MIDPT_X         + (( 0.8090169943749474241022934171828/*cos(36°)*/) * GFX_SENSOR_SUM_RADIUS),
+    GFX_SENSOR_ORIGIN_Y - (( 0.5877852522924731291687059546390/*sin(36°)*/) * GFX_SENSOR_SUM_RADIUS)
+  ),
+  Point2D(
+    GFX_MIDPT_X         + (( 1.0/*cos(0°)*/)                                * GFX_SENSOR_SUM_RADIUS),
+    GFX_SENSOR_ORIGIN_Y - (( 0.0/*sin(0°)*/)                                * GFX_SENSOR_SUM_RADIUS)
   )
 };
 
@@ -427,6 +427,7 @@ typedef enum {
   ucmdNONE = -1,
   ucmdPassive,
   ucmdSafe,
+  ucmdTrack,
   ucmdFull,
   ucmdReset,
   ucmdOff,
@@ -477,16 +478,20 @@ public:
           "Safe", 82, 6, 76, 36, 5,
           &Sensor_Display::safeButtonDidTouch
         ),
+        _trackButton(
+          "Track", 162, 6, 76, 36, 5,
+          &Sensor_Display::trackButtonDidTouch
+        ),
         _fullButton(
-          "Full", 162, 6, 76, 36, 5,
+          "Full", 2, 52, 76, 36, 5,
           &Sensor_Display::fullButtonDidTouch
         ),
         _resetButton(
-          "Reset", 42, 52, 76, 36, 5,
+          "Reset", 82, 52, 76, 36, 5,
           &Sensor_Display::resetButtonDidTouch
         ),
         _offButton(
-          "Off", 122, 52, 76, 36, 5,
+          "Off", 162, 52, 76, 36, 5,
           &Sensor_Display::offButtonDidTouch
         ),
         _connStatus(false),
@@ -554,6 +559,11 @@ public:
     _userCommand     = ucmdSafe;
   }
 
+  void trackButtonDidTouch() {
+    _userCommandTime = millis();
+    _userCommand     = ucmdTrack;
+  }
+
   void fullButtonDidTouch() {
     _userCommandTime = millis();
     _userCommand     = ucmdFull;
@@ -610,6 +620,7 @@ private:
 
   Round_Button _passiveButton;
   Round_Button _safeButton;
+  Round_Button _trackButton;
   Round_Button _fullButton;
   Round_Button _resetButton;
   Round_Button _offButton;
@@ -622,6 +633,7 @@ private:
 
     _passiveButton.draw(_tft, _touch, *this);
     _safeButton.   draw(_tft, _touch, *this);
+    _trackButton.  draw(_tft, _touch, *this);
     _fullButton.   draw(_tft, _touch, *this);
     _resetButton.  draw(_tft, _touch, *this);
     _offButton.    draw(_tft, _touch, *this);

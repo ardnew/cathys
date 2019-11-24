@@ -1,0 +1,9 @@
+#!/bin/bash
+
+oibot=/dev/ttyUSB0
+teensy=/dev/ttyACM0
+
+go build 
+
+[[ $? -eq 0 ]] && \
+  gdb -ix ~/.gdbinit_golang ./cathys-drive -ex "run \"$oibot\" \"$teensy\""
